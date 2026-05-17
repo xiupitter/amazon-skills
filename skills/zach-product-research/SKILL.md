@@ -1,12 +1,12 @@
 ---
 name: zach-product-research
 description: |
-  基于Sorftime MCP的选品分析，发现高潜力市场机会、多维度属性标注与交叉分析、验证竞争格局、测算投入产出、输出Go/No-Go决策与选品报告。
+  基于Sorftime MCP的选品分析，发现高潜力市场机会、多维度属性标注与交叉分析、验证竞争格局、测算投入产出、专利风险与FTO评估、输出Go/No-Go决策与选品报告。
   使用时机：选品立项前的市场调研。新品上架工作流第一步。
   触发词：/zach-product-research
 benefits-from: []
 user-invocable: true
-allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, mcp__sorftime__category_search_from_product_name, mcp__sorftime__category_search_from_top_node, mcp__sorftime__search_categories_broadly, mcp__sorftime__category_name_search, mcp__sorftime__category_report, mcp__sorftime__category_report_from_history, mcp__sorftime__category_trend, mcp__sorftime__category_keywords, mcp__sorftime__keyword_search_results, mcp__sorftime__keyword_detail, mcp__sorftime__keyword_extends, mcp__sorftime__keyword_trend, mcp__sorftime__product_search, mcp__sorftime__product_detail, mcp__sorftime__product_trend, mcp__sorftime__product_reviews, mcp__sorftime__product_traffic_terms, mcp__sorftime__product_variations, mcp__sorftime__potential_product, mcp__sorftime__competitor_product_keywords, mcp__sorftime__ali1688_similar_product]
+allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, WebSearch, mcp__sorftime__category_search_from_product_name, mcp__sorftime__category_search_from_top_node, mcp__sorftime__search_categories_broadly, mcp__sorftime__category_name_search, mcp__sorftime__category_report, mcp__sorftime__category_report_from_history, mcp__sorftime__category_trend, mcp__sorftime__category_keywords, mcp__sorftime__keyword_search_results, mcp__sorftime__keyword_detail, mcp__sorftime__keyword_extends, mcp__sorftime__keyword_trend, mcp__sorftime__product_search, mcp__sorftime__product_detail, mcp__sorftime__product_trend, mcp__sorftime__product_reviews, mcp__sorftime__product_traffic_terms, mcp__sorftime__product_variations, mcp__sorftime__potential_product, mcp__sorftime__competitor_product_keywords, mcp__sorftime__ali1688_similar_product, mcp__user-global_core_patent_database__search_patents, mcp__user-global_core_patent_database__bibliography, mcp__user-global_core_patent_database__claims, mcp__user-global_core_patent_database__claim_translated, mcp__user-global_core_patent_database__abstract_translated, mcp__user-global_core_patent_database__description, mcp__user-global_core_patent_database__description_translated, mcp__user-global_core_patent_database__family, mcp__user-global_core_patent_database__legal_data, mcp__user-global_core_patent_database__get_patent_legal_status, mcp__user-global_core_patent_database__forward_citation, mcp__user-global_core_patent_database__reexamination_invalidation, mcp__user-global_core_patent_database__transfer_data, mcp__user-global_core_patent_database__license_data, mcp__user-global_core_patent_database__customs_data]
 risk-level: low
 ---
 
@@ -31,9 +31,11 @@ risk-level: low
 
 **数据来源**：全部通过 Sorftime MCP 工具获取，不捏造、不估算。
 
-**下游输出**：选品报告（MD + HTML精简 + Dashboard看板 + Excel）→ 新品上架工作流的后续步骤：`zach-competitor-deep-dive`（Listing 级竞品拆解）→ `zach-pricing-strategy`（定价精算）→ …
+**下游输出**：选品报告（MD + HTML精简 + Dashboard看板 + Excel + **专利风险评估三件套**）→ 新品上架工作流的后续步骤：`zach-competitor-deep-dive`（Listing 级竞品拆解）→ `zach-pricing-strategy`（定价精算）→ …
 
 > **注**：本 Skill 已吸收原 `zach-market-intelligence` 的 Go/No-Go 决策框架与进入壁垒评估能力（见 Step 2.4 / Step 3.5），以及 `zach-report-dashboard-renderer` 的 Dashboard 可视化看板能力。两者均已标记为 deprecated。
+>
+> **Step 4.5 专利风险与 FTO 评估**（v3 新增）：在产品矩阵确定后、交付前增加专利侵权风险评估，调用 Global Core Patent Database MCP，针对 Tier1 差异化卖点做多维度专利检索 + 法律状态核查 + 独立权利要求侵权要件比对，输出风险矩阵 + 规避设计建议 + 自检表，对接进 Go/No-Go 决策的 Conditional 路径。
 
 ## Script Directory
 
@@ -107,6 +109,7 @@ risk-level: low
 6. ⛔ 输出前执行 Step 5 交付自检清单
 7. ⛔ 定向品类分析（场景 4）必须执行 Step 1.5 产品属性标注
 8. ⛔ 差评痛点必须按属性维度归类（而非仅按产品归类）
+8.5 ⛔ **高风险品类必须执行 Step 4.5 专利风险评估**（电子/机械结构/医疗健康/可穿戴/儿童产品/头部品牌密集赛道，或预算 ≥ USD 20K）；豁免时必须在报告"风险提示"章节注明"未做专利 FTO"
 
 ### 报告写作硬性规则（⛔ 不可省略）
 
@@ -129,7 +132,9 @@ risk-level: low
 
 ---
 
-## Sorftime MCP 工具清单
+## MCP 工具清单
+
+### Sorftime MCP 工具
 
 执行选品分析时，调用以下 Sorftime MCP 工具（⛔ = 必调，📋 = 按需）：
 
@@ -158,6 +163,29 @@ risk-level: low
 | **供应链** | `ali1688_similar_product` | 1688相似产品（采购成本） | 📋 按需 |
 
 **⛔ 必调说明**：无论场景如何，这 6 个工具必须调用，其输出是报告核心数据的来源。📋 按需工具根据场景和用户需求选择性调用。
+
+### Global Core Patent Database MCP 工具（Step 4.5 专利风险评估）
+
+执行 Step 4.5 时，调用以下 Patent Database MCP 工具：
+
+| 类别 | 工具 | 用途 | 优先级 |
+|------|------|------|--------|
+| **检索** | `search_patents` | 关键词/布尔表达式检索专利（query_text 支持中英文+布尔运算） | ⛔ 必调 |
+| **元数据** | `bibliography` | 取专利完整书目数据（标题/申请人/IPC/日期） | 📋 按需 |
+| | `abstract_translated` | 取专利摘要（含中译） | 📋 按需 |
+| **法律** | `get_patent_legal_status` | 简版法律状态（有效/失效/审中） | ⛔ 必调 |
+| | `legal_data` | 完整法律事件链（INPADOC + 各国局事件） | 📋 按需（深查重点专利时） |
+| | `reexamination_invalidation` | 复审/无效宣告记录 | 📋 按需 |
+| **权利** | `claims` | 权利要求原文（英文/中文） | ⛔ 必调（Top 风险专利必查） |
+| | `claim_translated` | 权利要求中文翻译 | 📋 按需（语言障碍时） |
+| | `description` / `description_translated` | 说明书全文（含/不含中译） | 📋 按需（解读模糊权利要求时） |
+| **同族** | `family` | 同族专利展开（simple/INPADOC/PatSnap） | ⛔ 必调（评估跨国保护范围） |
+| **引用** | `forward_citation` | 前向引用（被谁引用，反映影响力） | 📋 按需 |
+| **权属** | `transfer_data` | 权属转让记录（识别 NPE / 头部品牌持有人） | 📋 按需 |
+| | `license_data` | 许可记录 | 📋 按需 |
+| | `customs_data` | 海关备案（重点防范品牌） | 📋 按需 |
+
+**⛔ Step 4.5 必调说明**：`search_patents` + `get_patent_legal_status` + `claims` + `family` 这 4 个工具必须调用。其余按重点专利深查需要选择性调用。
 
 ---
 
@@ -668,6 +696,201 @@ risk-level: low
 - 不允许不给目标定价（必须基于 Step 3 测算）
 - 如果数据确实不足以支撑某个 Tier，明确标注"数据不足：缺少 XX 数据，建议补充 XX 后再定"，但不得用"待确认"含糊带过
 
+---
+
+### Step 4.5: 专利风险与 FTO 评估（⛔ 高风险品类必做）
+
+> 本步骤在 Step 4 产品矩阵确定后、Step 5 交付前执行。基于 Tier1 SKU 的差异化卖点，调用 **Global Core Patent Database MCP**，对核心技术方向做专利布雷扫描，输出风险矩阵 + 规避设计建议 + 量产前侵权要件自检表，并反哺 Go/No-Go 决策。
+
+#### 4.5.0 触发条件与豁免
+
+| 情况 | 是否必做 |
+|------|---------|
+| 涉及电子/电气/电池/电机/无线模组的产品 | ⛔ 必做 |
+| 涉及独特机械结构、传动机构、运动控制的产品（玩具、宠物用品、母婴等） | ⛔ 必做 |
+| 涉及医疗/健康/可穿戴/儿童安全的品类 | ⛔ 必做 |
+| 头部品牌（PetSafe / Anker / SharkNinja 类）布局密集的红海品类 | ⛔ 必做 |
+| 预算 ≥ USD 20K 或备货 ≥ 1000 件 | ⛔ 必做（投诉成本 > 检索成本）|
+| 纯被动产品（布艺、塑料模塑无机构、毛绒玩具等） | 📋 推荐（仅做外观设计专利 FTO） |
+| 用户明确要求"仅市场调研，不评估 IP" | 🟡 可豁免，但必须在报告"风险提示"章节注明"未做专利 FTO" |
+
+#### 4.5.1 拆解 Tier1 差异化卖点 → 检索维度
+
+从 Step 4 产品矩阵中提取 Tier1 SKU 的**差异化技术点**，每个点对应一个检索维度（axis）。
+
+**模板**：
+
+| axis_id | 差异化点 | 中文关键词 | 英文关键词 | 同义/相邻概念 |
+|---|---|---|---|---|
+| A1 | [如"自动激光逗猫"] | 自动激光 / 智能轨迹 | laser pointer / automatic laser / random pattern | IR projection / pet exercise |
+| A2 | ... | ... | ... | ... |
+
+**⛔ 维度覆盖最低要求**：5-8 个 axis，覆盖：
+- 主体机构（mechanism / structure）
+- 关键功能（function / mode）
+- 智能化（sensor / AI / app / camera）
+- 充电与电源（USB-C / battery / wireless charging）
+- 外观/形态（form factor / housing）
+
+#### 4.5.2 多角度专利检索（中英文 Boolean）
+
+每个 axis 设计 1-2 组检索 query，**并行**调用 `search_patents`：
+
+**query 设计模板**：
+
+```
+TAC:(<品类核心词> AND (<功能词1> OR <功能词2>) AND (<修饰词1> OR <修饰词2>))
+```
+
+**示例**（猫互动玩具）：
+
+| axis | query 示例 |
+|---|---|
+| A1 激光 | `TAC:(cat AND toy AND laser AND (automatic OR auto OR rotating))` |
+| A2 电动羽毛 | `TAC:(cat AND toy AND feather AND (motorized OR rotating OR electric))` |
+| A3 接近感应 | `TAC:(cat AND toy AND ("motion sensor" OR "proximity sensor" OR PIR))` |
+| A4 中文补充 | `TAC:(逗猫 AND (激光 OR 羽毛 OR 自动 OR 智能))` |
+
+**参数建议**：`limit=10-15`、`sort_field=SCORE`、`sort_order=DESC`。
+
+**⛔ 中文补充检索必做**：中国卖家在 CN 国内布局的实用新型 + 美国布点专利容易遗漏，必须用中文 query 至少补一轮。
+
+#### 4.5.3 风险专利去重 + 排序
+
+对所有 search_patents 命中的专利，按**专利号去重**（同 patent_number 不同公开版本归为同族）后，按以下优先级排序：
+
+1. **国家优先**：US > WO（PCT）> EP > CN（按目标市场调整）
+2. **法律状态优先**：标题/摘要直接命中差异化点的 active 专利排在前
+3. **持有人重要性**：头部品牌（PetSafe / Anker / Worldwise 等）和 NPE 嫌疑人优先深挖
+
+**输出**：候选 Top 风险专利清单（10-20 件）。
+
+#### 4.5.4 批量法律状态查询（⛔ 必做）
+
+对候选清单批量并行调用 `get_patent_legal_status`，分类如下：
+
+| 状态 | 处理 |
+|---|---|
+| ✅ 有效（Active）| 进入下一步要件比对 |
+| ⏳ 公开/审中（Pending）| 列入"待观察"，标注预计授权日；若已公开 18 个月以上需关注 |
+| ⚠️ 临期（剩余 < 2 年）| 仍按有效处理，但提示"上市时可能已失效，量产前复核" |
+| ❌ 失效（Expired / Lapsed）| 进入"已失效汇总表"，可自由实施但不重点分析 |
+
+#### 4.5.5 提取独立权利要求 + 侵权要件比对（Claim Chart）
+
+对**所有有效**专利批量调用 `claims`，提取**独立权利要求**（claim_independent_count）。
+
+**⛔ 侵权判定原则（all-elements rule）**：必须**包含全部独立权利要求要件**才构成侵权；只要缺一个要件 = 不侵权。
+
+**Claim Chart 模板**（每件高风险专利必出）：
+
+| 要件编号 | 独立权要要件原文（简化） | Tier1 SKU 是否包含？ | 规避方法 |
+|---|---|---|---|
+| ① | [元件 1] | ☐ 是 / ☐ 否 | [若是 → 如何回避] |
+| ② | [元件 2] | ☐ 是 / ☐ 否 | ... |
+| ... | ... | ... | ... |
+| **结论** | 全部 ☐ 是 = 落入保护范围 ⛔ | — | — |
+
+**⛔ 多独立权要件全部拆解**：若一件专利有多个独立权利要求（如 claim 1、claim 10、claim 20），每个都必须单独拆。
+
+#### 4.5.6 风险分级矩阵
+
+按命中要件深度与持有人威胁度，对每件有效专利分级：
+
+| 等级 | 标识 | 判定标准 | 行动 |
+|---|---|---|---|
+| 🔴 极高 | RED | Tier1 设计**完全落入**独立权利要求 / 头部品牌持有 / 最新授权 | 必须重新设计 |
+| 🟠 高 | ORANGE | 仅有 1-2 个要件可通过简单参数调整避开 / 头部品牌持有 | 重要要件回避 |
+| 🟡 中 | YELLOW | 已临近过期 / 仅地区性（非目标市场）/ 待审 | 量产前复核状态 |
+| 🟢 低 | GREEN | 已失效 / 持有人无诉讼能力 / 完全不相关 | 仅作 FTO 文档记录 |
+
+#### 4.5.7 规避设计建议（⛔ 必出，针对所有🔴🟠等级专利）
+
+对每件 🔴 RED / 🟠 ORANGE 专利，必须给出**具体可执行**的规避方案：
+
+```
+### [PN]：[标题]
+
+**核心要件（必须同时全部具备才侵权）**：
+1. [要件 A]
+2. [要件 B]
+...
+
+**Tier1 SKU 命中分析**：
+- 我方设计中 [要件 X] 命中 / [要件 Y] 未命中
+
+**规避路线**（择一即可）：
+- 方案 A：将 [要件 X] 替换为 [非要件结构]（如：将"接近传感器"替换为"振动激发"）
+- 方案 B：删除 [要件 Y]（如：完全不集成摄像头）
+- 方案 C：参数远离要件（如：绳长 < 0.5 倍周长 或 > 1 倍周长）
+```
+
+**禁止**：仅写"避开此专利"、"设计绕开"等空泛建议，必须落实到具体要件层级。
+
+#### 4.5.8 关键持有人画像（同族 + 转让 + 海关备案）
+
+对**🔴 RED 等级 + 头部品牌**持有人，扩展调用：
+
+| 工具 | 用途 | 必要性 |
+|---|---|---|
+| `family` | 展开同族（评估跨国保护边界） | ⛔ 必做 |
+| `transfer_data` | 查权属变更（识别 NPE 收购）| 📋 按需 |
+| `customs_data` | 查美国海关备案（评估实际维权威胁）| 📋 按需 |
+| `forward_citation` | 查前向引用（专利重要性指数）| 📋 按需 |
+
+**输出持有人卡片**：
+
+```
+**持有人**：[名称]
+- 本品类在场专利：[PN 列表]
+- 同族扩展：US / EP / CN / JP 是否布局
+- 是否头部品牌：是 / 否
+- 诉讼/投诉历史（如有，WebSearch 补充）：...
+- 行动建议：[避免抄袭其外观、listing 描述去除哪些关键词等]
+```
+
+#### 4.5.9 反哺 Go/No-Go 决策（更新 Step 3.5）
+
+Step 4.5 完成后，必须更新 Step 3.5 的 Go/No-Go 评分卡：
+
+| 情况 | Go/No-Go 调整 |
+|---|---|
+| 无 🔴 RED 等级专利，且 🟠 ORANGE 都有规避方案 | 维持 GO，但备注"已完成 FTO，建议量产前出具正式 FTO Opinion Letter" |
+| 有 🔴 RED 等级专利，但 Tier1 可重新设计回避 | **GO → Conditional GO**，条件为"Tier1 必须按 4.5.7 规避路线重新打样" |
+| 有 🔴 RED 等级专利且无法规避（要件全部命中无替代）| **GO → HOLD/NO-GO**，建议放弃该方向 |
+| 持有人为 PetSafe / Anker 等头部，且海关已备案 | 自动 → Conditional GO，建议预算 +USD 2-5K 做正式 FTO Opinion |
+
+#### 4.5.10 三件套交付（与主报告同目录但独立子文件夹）
+
+输出到 `outputs/market-research/{brand}/{品类}/{version}/patent_risk/`：
+
+| 文件 | 内容 |
+|---|---|
+| `patent_landscape.json` | 结构化数据底稿（差异化维度索引 + 全部命中专利 + 要件 + 法律状态 + 规避建议 + 持有人画像）|
+| `patent_risk_report.md` | 完整 MD 评估报告（风险矩阵 + Top3 Claim Chart + 持有人画像 + 行动清单时间表）|
+| `claim_chart_selfcheck.md` | **量产前必填的侵权要件自检表**（每个高风险专利逐要件☐勾选）|
+
+**主报告 `chapters` 中的引用**：
+
+- 在 `ch08_strategic_recommendations.brand_strategy` 中追加一段"专利 FTO 摘要"（3-5 行，提示 RED/ORANGE 数量 + 是否反哺 Conditional GO）
+- 在 `ch09_barriers_go_nogo.barriers` 中追加 "IP/专利壁垒" 一条
+- 在 `ch10_appendix.files` 中追加 patent_risk/ 三件套文件列表
+
+**Excel 增加可选 Sheet**（若执行 Step 4.5）：
+
+- `专利风险评估`：每行一件命中专利，列：PN / 标题 / 持有人 / 法律状态 / 风险等级 / 命中差异化点 / 规避方案摘要 / 数据来源_工具
+
+#### 4.5.11 检查点（进入 Step 5 前必须通过）
+
+- [ ] 已拆解 Tier1 差异化卖点为 **5-8 个 axis**？
+- [ ] 每个 axis 至少 1 组**英文 query** + 至少 1 组**中文补充 query** 已执行？
+- [ ] 候选 Top 风险专利已做 **法律状态批量查询**？
+- [ ] 所有"有效"专利已查询 **claims（独立权利要求）**？
+- [ ] 每件 🔴/🟠 等级专利都有 **Claim Chart** + **具体规避路线**？
+- [ ] 已生成 **patent_landscape.json + patent_risk_report.md + claim_chart_selfcheck.md** 三件套？
+- [ ] 已根据评估结果更新 **Step 3.5 Go/No-Go**？
+- [ ] 已在主报告 `ch08` / `ch09` / `ch10` 中嵌入对专利评估的引用？
+
 ### Step 5: 交付前自检（⛔ 必做）
 
 ### ⛔ 交付硬性规则
@@ -680,6 +903,11 @@ risk-level: low
     - 两个 Sheet 的数据来源是 `top100_raw.json` 和 `top100_parsed.json`
 18. ⛔ **竞品选择逻辑必须包含价格和销量**：`competitor_selection_logic` 每条记录
     必须含 price/monthly_sales/reviews 字段（从 product_detail 获取）
+19. ⛔ **若执行了 Step 4.5 专利风险评估，必须输出三件套**：
+    - `patent_risk/patent_landscape.json`（结构化数据底稿）
+    - `patent_risk/patent_risk_report.md`（完整评估报告）
+    - `patent_risk/claim_chart_selfcheck.md`（侵权要件自检表）
+    且主报告 `ch08_strategic_recommendations` / `ch09_barriers_go_nogo` / `ch10_appendix` 必须有引用
 
 在输出报告和数据文件之前，逐项检查以下清单。**全部通过后才可输出**，未通过项必须修正后再输出：
 
@@ -704,6 +932,17 @@ risk-level: low
 - [ ] 「属性标注_Top100」Sheet 属性标注完整？
 - [ ] 竞品选择逻辑表每条含 price/monthly_sales/reviews？
 - [ ] 调用 `render_deliverables.py all` 一次性生成（非分步）？
+
+**专利风险评估检查（⛔ Step 4.5 执行后必须全部通过）**：
+
+- [ ] Tier1 差异化点已拆解为 5-8 个 axis？
+- [ ] 每个 axis 完成英文 + 中文补充检索？
+- [ ] 所有候选 Top 风险专利已查 `get_patent_legal_status`？
+- [ ] 所有"有效"专利已提取独立权利要求？
+- [ ] 每件 🔴 RED / 🟠 ORANGE 专利都有 Claim Chart + 具体规避路线？
+- [ ] `patent_risk/` 子目录下三件套齐全（landscape.json + risk_report.md + selfcheck.md）？
+- [ ] Step 3.5 Go/No-Go 决策已根据 4.5 结果更新（必要时降为 Conditional GO）？
+- [ ] 主报告 ch08 / ch09 / ch10 已嵌入专利评估引用？
 
 **洞察质量检查（⛔ 必须全部通过）**：
 
@@ -798,7 +1037,7 @@ risk-level: low
 ### 六、风险提示
 - [ ] 季节性风险：[是/否]
 - [ ] 认证要求：[是/否]
-- [ ] 专利风险：[是/否]
+- [ ] 专利风险：[已做 Step 4.5 FTO / 未做 / 不适用] — 若已做，附 patent_risk/ 三件套链接 + 风险等级摘要（🔴X / 🟠Y / 🟡Z / 🟢W）
 - [ ] 供应链风险：[注意事项]
 ```
 
@@ -846,6 +1085,7 @@ risk-level: low
 | Step 3.5 Go/No-Go | **⛔ 必做** | **⛔ 必做**——正式交付版本必须给出量化结论，而不是只给方向 |
 | Step 1.7 新品分析 | 📋 按需 | **⛔ 必做**——定向分析需评估新品可进入性 |
 | Step 1.3 潜力产品 | 核心步骤 | 📋 按需——用户更关心已有市场格局而非新品机会 |
+| Step 4.5 专利风险评估 | ⛔ 高风险品类必做 | **⛔ 高风险品类必做**——电子/机械结构/医疗健康/儿童/头部品牌密集，必出风险三件套 |
 
 **执行要点**：
 
@@ -914,6 +1154,7 @@ risk-level: low
 | Step 1.5 属性标注 | `top100_parsed.json` + `uncertain_products.json` | 标注后数据 + 待验证列表 |
 | Step 1.6 交叉分析 | `cross_analysis.json` | 交叉矩阵 + 空白点 |
 | Step 2.2 VOC 分析 | `voc_analysis.json` | 竞品选择逻辑 + 差评分类 |
+| Step 4.5 专利风险评估 | `patent_risk/patent_landscape.json` + `patent_risk/patent_risk_report.md` + `patent_risk/claim_chart_selfcheck.md` | 检索结果 + 风险矩阵 + 自检表 |
 
 **原则**：
 - 每个 Step 完成后，将结果写入文件再进入下一步
@@ -1047,9 +1288,14 @@ outputs/market-research/{brand}/{品类}/{version}/
 ├── uncertain_products.json      # 需 product_detail 验证的产品列表
 ├── cross_analysis.json          # 交叉分析结果（Step 1.6 输出）
 ├── voc_analysis.json            # VOC 差评分析结果
+├── patent_risk/                 # ⛔ Step 4.5 专利风险评估（高风险品类必出）
+│   ├── patent_landscape.json    # 结构化数据底稿（差异化维度索引 + 全部命中专利 + 要件 + 法律状态 + 规避建议 + 持有人画像）
+│   ├── patent_risk_report.md    # 完整 MD 评估报告（风险矩阵 + Top3 Claim Chart + 持有人画像 + 行动清单时间表）
+│   └── claim_chart_selfcheck.md # 量产前必填的侵权要件自检表
 ├── {date}_{site}_{品类}_市场调研报告_{version}.md     # 完整 MD 报告
 ├── {date}_{site}_{品类}_市场调研_数据_{version}.xlsx   # Excel 数据（多 Sheet）
 ├── {date}_{site}_{品类}_精简报告_{version}.html        # ⛔ HTML 精简报告（三件套必出）
+├── {date}_{site}_{品类}_可视化看板_{version}.html      # Dashboard 看板（v2 四件套必出）
 ├── parse_top100_dimensions.py   # 标题解析脚本（可选，复杂品类用）
 ├── apply_overrides.py           # 手动修正脚本（可选）
 ├── cross_analysis.py            # 交叉分析脚本（可选）
@@ -1112,6 +1358,7 @@ HTML 精简报告须与 MD/Excel 同源数据一致，且**结构、样式、区
 | **新品分析** | 必选（Step 1.7） | Top100 中新品（≤6个月）分布与趋势 | ASIN、标题、品牌、上线日期、上线天数、月销量、月销额、价格、[属性维度列]、新品友好度评级、数据来源_工具 |
 | **进入壁垒评估** | 必选 | 六类进入壁垒汇总与启动前提 | 壁垒类型、等级、数据锚点、预估成本、预估时间、对目标品牌含义 |
 | **Go-NoGo评分卡** | 必选 | 五维加权评分与结论 | 维度、权重、评分、依据、加权分、总分、决策 |
+| **专利风险评估** | 必选（若执行 Step 4.5）| Step 4.5 命中专利风险矩阵 | 专利号、标题、持有人、法律状态、风险等级、命中差异化点、规避方案摘要、数据来源_工具 |
 | **1688参考** | 明细 | 1688 相似品（ali1688_similar_product） | 标题、价格、链接、数据来源_工具、数据来源_含义 |
 
 **数据来源说明示例行**：
@@ -1228,6 +1475,11 @@ python skills/zach-product-research/scripts/render_deliverables.py all --input s
   - Go/No-Go 评分落在 CONDITIONAL GO 区间时，必须人工决策
   - 数据异常（如 Top100 返回不足 50 条）时标注数据缺失
   - 涉及合规/认证门槛高的品类，提醒用户确认
+  - **Step 4.5 命中 🔴 RED 等级专利**（无法通过简单参数调整规避），必须人工决策是否换方向或换 Tier
+- **专利评估的免责声明**：
+  - Step 4.5 输出**不构成法律意见**，仅为商业决策前的风险体检
+  - 量产前必须委托具备美国专利代理人资质的律师出具正式 **FTO Opinion Letter**（USD 1500-3000），作为后续若被投诉时的善意防御（good faith defense）证据
+  - 本 Skill 仅检索发明专利 + 实用新型，**外观设计专利 FTO** 需在产品定稿后另做（Amazon 美国设计专利投诉风险高）
 - **risk-level: low** — 纯分析/信息收集，不影响资金或账号
 
 ## 上游 / 下游
@@ -1261,6 +1513,8 @@ python skills/zach-product-research/scripts/render_deliverables.py all --input s
 - 报告文件名
 - Excel 文件名
 - Dashboard 文件名
+- 专利风险等级摘要（🔴/🟠/🟡/🟢 数量统计 + 是否触发 Conditional GO）
+- 专利风险评估目录（patent_risk/ 路径）
 
 ## 完成后
 
